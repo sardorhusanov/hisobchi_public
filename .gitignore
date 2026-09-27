@@ -1,4 +1,11 @@
 .env
+.env.*
+!.env.example
+!.env.production.example
+*.production.env
+.firebase/
+firebase-debug*.log
+deploy/gcloud/config.env
 .venv/
 __pycache__/
 *.pyc

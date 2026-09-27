@@ -5,7 +5,40 @@ the mobile Mini App provides management, history, reports, and charts. Both use
 **the same services, models, and PostgreSQL database**.
 
 Python 3.13 · uv · aiogram 3 · async SQLAlchemy · PostgreSQL · FastAPI · React ·
-TypeScript · Vite · TanStack Query · Recharts. No Docker, Redis, Celery, or admin panel.
+TypeScript · Vite · TanStack Query · Recharts. No Redis, Celery, or admin panel.
+Local development needs no Docker. Google Cloud deployment uses a backend container;
+see the [deployment guide and scripts](deploy/gcloud/README.md).
+
+## What the project does
+
+Hisobchi helps a small-business owner manage workers and partners, record daily
+attendance, calculate salaries and advances, track project income and expenses,
+and review financial reports. Each Telegram manager has a separate workspace.
+The interface is in Uzbek, monetary amounts are displayed in Uzbek so'm, and
+calendar dates use Asia/Tashkent.
+
+The bot and API share the Python business services and database models. The bot
+connects directly to PostgreSQL; the React Mini App calls the API over HTTPS.
+Accounting calculations run on the backend.
+
+| Component | Directory | Responsibility |
+| --- | --- | --- |
+| Telegram bot | `backend/app/bot` | aiogram long polling, message flows, Mini App launch |
+| HTTP API | `backend/app/api` | FastAPI routes, Telegram authentication, workspace access |
+| Shared backend | `backend/app/services`, `models`, `repositories` | Business rules and PostgreSQL persistence |
+| Mini App | `miniapp` | React interface, forms, charts, reports |
+| Deployment | `deploy/gcloud` | Google Cloud provisioning, releases, VM services, checks |
+
+## Live application
+
+Open [@hisobkitop_bot](https://t.me/hisobkitop_bot), send `/start`, and tap
+**Ilovani ochish**. The [Mini App](https://hisobchi-509915.web.app) requires Telegram
+launch credentials; opening its URL in a normal browser does not sign you in.
+The [API health endpoint](https://hisobchi-api-dhqromlona-em.a.run.app/health)
+checks that the API process is running.
+
+Deployment details and the recorded checks are in
+[deployment status](deploy/gcloud/DEPLOYMENT.md).
 
 ## Local setup
 
@@ -30,6 +63,8 @@ URL-special password characters. Get a bot token from BotFather for Telegram use
 ```dotenv
 BOT_TOKEN=your_bot_token
 DATABASE_URL=postgresql+asyncpg://work_management:your_password@localhost:5432/work_management
+DATABASE_POOL_SIZE=2
+DATABASE_MAX_OVERFLOW=1
 APP_ENV=development
 LOG_LEVEL=INFO
 TIMEZONE=Asia/Tashkent
@@ -48,7 +83,7 @@ uv run uvicorn app.api.main:app --reload --host 127.0.0.1 --port 8000
 
 The API is at `http://127.0.0.1:8000/api/v1`. OpenAPI documentation is at `/docs`;
 `/health` is an unauthenticated liveness check, not database readiness.
-Phase 2 needs no schema change: the initial migration remains the schema source.
+Alembic migrations in `backend/alembic/versions/` define the database schema.
 
 ### Telegram bot
 
@@ -58,8 +93,9 @@ In another terminal, from `backend/`:
 uv run python -m app.bot.main
 ```
 
-Use one polling process. `/start` initializes the workspace and owner. The original
-Uzbek keyboards, input flows, attendance, salary, projects and finance remain intact.
+Use exactly one polling process per bot token. `/start` initializes the workspace
+and owner. For local development while production is running, use a separate bot
+token and database.
 
 ### Mini App
 
@@ -171,11 +207,11 @@ Bottom navigation: **Bosh sahifa · Davomat · Loyihalar · Moliya · Ko'proq**.
 
 Money inputs support `6000000`, `6 000 000`, `6,000,000`, and up to two decimal
 places. Monetary API values are decimal strings. React performs presentation and
-input normalization only; `Number` conversion is limited to drawing charts.
+input normalization only; monetary `Number` conversion is limited to drawing charts.
 Transactions are paginated (30 default, 100 maximum); dashboard/chart aggregates
 are computed server-side. Large people/project lists are intended for small teams.
 
-## Business rules preserved
+## Business rules
 
 - OWNER and PARTNER have attendance and no fixed salary; WORKER requires a positive salary.
 - Salary = monthly salary / **30** × worked days, with one final gross rounding to
@@ -183,7 +219,7 @@ are computed server-side. Large people/project lists are intended for small team
   negative remaining salary is allowed.
 - Salary editing updates the existing single monthly rate. **Past reports are
   recalculated at that rate.** The UI explicitly asks for acknowledgement. Historical
-  salary schedules are not invented or stored by this phase.
+  salary schedules are not stored.
 - Missing attendance means zero. Only `1` and `0.5` are stored. `Yo'q` removes an
   entry. People are deactivated instead of deleting historical records.
 - Finance cash flow counts advances by payment date, while salary/advance reports
@@ -282,48 +318,69 @@ The browser test creates records in that test workspace and leaves them for insp
 It checks actual API-backed flows and phone widths 320, 360, 390, 430px. Screenshots
 and failure traces go in ignored `test-results/`. Do not run it against production.
 
-## Verification completed
+## Verification
 
-- 49 backend tests passed, including original bot/domain tests and new API/auth tests.
-- Alembic schema check found no pending changes.
-- Frontend type checking, ESLint, money/date utility tests, and production build passed.
-- Real API browser flows passed; 11 main pages were checked at 320, 360, 390, and
-  430px with no horizontal overflow or JavaScript page errors.
-- Light/dark screenshots were inspected. API startup and bot bootstrap passed;
-  bot bootstrap used mocked Telegram networking, not a live bot session.
-- Production assets were checked for backend secrets and the development-auth header.
+The 2026-09-27 deployment was checked with all 49 backend tests against a temporary
+PostgreSQL database, frontend type checking and linting, four frontend unit tests,
+and the Playwright browser/mobile integration test. The production container,
+Cloud SQL migrations, API authentication boundary and CORS, Firebase SPA routing,
+and bot recovery after a VM reboot were also verified.
 
-## Production preparation — no automatic deployment
+See [deployment status](deploy/gcloud/DEPLOYMENT.md) for details and the remaining
+manual Telegram save/reopen check. `/health` alone does not verify the database.
 
-- Build with the public HTTPS API URL in `VITE_API_URL`; run `npm run build` and host
-  `miniapp/dist` on HTTPS. Configure SPA fallback to `index.html` for nested routes.
-- Run FastAPI behind an HTTPS reverse proxy on a public API URL. Set
-  `APP_ENV=production`, store BOT_TOKEN securely, clear DEV_TELEGRAM_USER_ID, and use
-  explicit HTTPS frontend origins in CORS_ORIGINS. Wildcard CORS is rejected.
-- Set MINI_APP_URL and configure Telegram as described above. Backend and bot must
-  share the same BOT_TOKEN and database.
-- Use production PostgreSQL credentials, apply migrations, configure regular
-  `pg_dump` backups, and verify restore procedures.
-- Run the bot as one polling process and API under your host's supervisor, with
-  `backend/` as working directory. Use graceful SIGTERM shutdown and centralized logs.
-- Do not log Authorization headers or initData in the reverse proxy. Keep clocks
-  synchronized for authentication expiry checks. Do not cache authenticated API responses.
-- Set reasonable request-size and rate limits at the reverse proxy; no additional
-  queue/cache service is needed. Keep Node/Python dependencies locked.
+## Google Cloud deployment
+
+| Component | Hosting | Initial configuration |
+| --- | --- | --- |
+| Bot | Compute Engine + systemd | One `e2-small` VM in `asia-south2-a` |
+| API | Cloud Run | 1 CPU, 512 MiB, 0–2 instances, concurrency 40 |
+| Database | Cloud SQL PostgreSQL 15 | `db-f1-micro`, single zone, 10 GB SSD with automatic growth |
+| Mini App | Firebase Hosting | Static Vite build, HTTPS, SPA fallback |
+| Credentials | Secret Manager | Bot token and separate API/bot database connection URLs |
+| Images | Artifact Registry + Cloud Build | Backend container built from locked dependencies |
+
+The API connects through Cloud Run's Cloud SQL Unix socket. The bot connects
+through Cloud SQL Auth Proxy on the VM. Both use the same database and bot token.
+Cloud Run and Firebase provide HTTPS; this setup needs no Nginx or Caddy.
+The VM and database remain billable while the API scales to zero.
+
+The repository includes deployment scripts; pushing to GitHub does **not**
+automatically release changes. After the one-time project, billing, and login
+setup described in the [deployment guide](deploy/gcloud/README.md):
+
+```bash
+# Run from the repository root after configuring deploy/gcloud/config.env.
+bash deploy/gcloud/provision.sh
+bash deploy/gcloud/deploy-api.sh
+# Add Firebase to the existing Google Cloud project once before publishing.
+bash deploy/gcloud/deploy-frontend.sh
+bash deploy/gcloud/deploy-bot.sh
+bash deploy/gcloud/verify.sh
+```
+
+The API release runs Alembic as a Cloud Run Job before deploying the new revision.
+Bot releases install a single supervised polling process. Frontend releases build
+with the deployed API URL. Database connections default to two pooled connections
+plus one overflow connection per API/bot process.
+
+Production uses `APP_ENV=production`, an empty `DEV_TELEGRAM_USER_ID`, and an
+explicit HTTPS frontend origin in `CORS_ORIGINS`. Credentials and local environment
+files are excluded from Git, container builds, and cloud source uploads. Cloud SQL
+has daily backups with seven retained; restore procedures should also be tested.
 
 ## Deliberately postponed
 
 Salary rate history with effective dates, payroll settlement, salary/project
 allocation, multi-manager permissions, exports, income/expense editing or deletion,
-project reopening, and a business-name field. These introduce accounting or data
-model behavior beyond Phase 1. The requested Mini App pages are functional; there
-are no Phase 1 placeholder pages left in navigation.
+project reopening, and a business-name field. These features are not implemented.
 
 ## Project structure
 
 ```text
 backend/
   .env.example, pyproject.toml, uv.lock, alembic.ini
+  Dockerfile, .dockerignore, .gcloudignore, cloudbuild.yaml
   alembic/{env.py,script.py.mako,versions/165fe4c96242_initial_workspace_and_business_schema.py}
   app/
     config/settings.py
@@ -340,7 +397,8 @@ backend/
       routers/{overview,people,attendance,projects,finance}.py
   tests/{conftest,test_calculations,test_postgres,test_bot,test_auth,test_api}.py
 miniapp/
-  .env.example, package.json, package-lock.json
+  .env.example, .env.production.example, package.json, package-lock.json
+  firebase.json
   index.html, tsconfig.json, vite.config.ts, eslint.config.js, playwright.config.ts
   src/
     app/{App,router,providers}.tsx
@@ -358,4 +416,8 @@ miniapp/
            Projects,ProjectDetails,Finance,Reports,Settings,More}.tsx
     main.tsx, style.css
   tests/miniapp.spec.ts
+deploy/gcloud/
+  README.md, DEPLOYMENT.md, config.env.example
+  common.sh, provision.sh, deploy-api.sh, deploy-bot.sh
+  setup-vm.sh, deploy-frontend.sh, verify.sh
 ```
