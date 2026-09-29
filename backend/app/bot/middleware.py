@@ -3,6 +3,7 @@ import logging
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message
 
+from app.bot.ui import safe_clear_keyboard
 from app.db.session import Session
 from app.repositories.core import Repository
 from app.services.core import WorkspaceService
@@ -41,6 +42,7 @@ class DatabaseMiddleware(BaseMiddleware):
             logger.exception("Bot operation failed", extra={"telegram_id": event.from_user.id})
             text = "Amal bajarilmadi. Qayta urinib ko'ring yoki bosh menyuga qayting."
         if isinstance(event, CallbackQuery):
+            await safe_clear_keyboard(event.message)
             await event.answer(text, show_alert=True)
         else:
             await message.answer(text)

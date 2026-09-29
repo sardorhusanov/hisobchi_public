@@ -3,7 +3,16 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.ui import Action, button, cancel_keyboard, inline, month_label, today
+from app.bot.ui import (
+    Action,
+    button,
+    clear_prompt,
+    edit_prompt,
+    inline,
+    month_label,
+    safe_edit_text,
+    today,
+)
 from app.models import Category, Person
 from app.services.core import AttendanceService, PeopleService, ReportService, SalaryService
 from app.services.values import DomainError, money, parse_month
@@ -82,11 +91,11 @@ async def report_start(query: CallbackQuery, callback_data: Action, state: FSMCo
         kind=c.value if c.kind == "report" else ("salary" if c.kind == "salary" else "attendance"),
         person_id=c.id or None,
     )
-    await query.message.answer(
-        "Oyni kiriting (2026-09) yoki joriy oyni tanlang.", reply_markup=cancel_keyboard()
-    )
-    await query.message.answer(
-        "Hisobot davri", reply_markup=inline([[button(month_label(today()), "currentreport")]])
+    await edit_prompt(
+        query.message,
+        state,
+        "Oyni kiriting (2026-09) yoki joriy oyni tanlang.",
+        inline([[button(month_label(today()), "currentreport")]]),
     )
     await query.answer()
 
@@ -94,7 +103,13 @@ async def report_start(query: CallbackQuery, callback_data: Action, state: FSMCo
 @router.callback_query(ReportInput.month, Action.filter(F.kind == "currentreport"))
 async def current_report(query: CallbackQuery, state: FSMContext, repo):
     data = await state.get_data()
-    await send_report(query.message, repo, data["kind"], today(), data["person_id"])
+    month = today()
+    await safe_edit_text(
+        query.message,
+        f"Hisobot davri: {month_label(month)}",
+        reply_markup=None,
+    )
+    await send_report(query.message, repo, data["kind"], month, data["person_id"])
     await state.clear()
     await query.answer()
 
@@ -103,5 +118,6 @@ async def current_report(query: CallbackQuery, state: FSMContext, repo):
 async def report_month(message: Message, state: FSMContext, repo):
     month = parse_month(message.text or "")
     data = await state.get_data()
+    await clear_prompt(message, state)
     await send_report(message, repo, data["kind"], month, data["person_id"])
     await state.clear()

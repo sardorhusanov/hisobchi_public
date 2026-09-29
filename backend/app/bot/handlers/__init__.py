@@ -1,6 +1,8 @@
 from aiogram import Router
 from aiogram.types import CallbackQuery, Message
 
+from app.bot.ui import safe_clear_keyboard
+
 from . import attendance, common, flows, records, reports
 
 
@@ -13,6 +15,7 @@ def make_router():
 
     @fallback.callback_query()
     async def unknown_callback(query: CallbackQuery):
+        await safe_clear_keyboard(query.message)
         await query.answer("Tugma eskirgan. Bosh menyudan qayta boshlang.", show_alert=True)
 
     @fallback.message()

@@ -22,7 +22,13 @@ const compact = (value: number) =>
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);
-const colors = ["#168875", "#bc8a35", "#6c77c5", "#ce725c", "#84939d"];
+const colors = [
+  "var(--chart-income)",
+  "var(--chart-warning)",
+  "var(--chart-secondary)",
+  "var(--chart-expense)",
+  "var(--chart-neutral)",
+];
 export function CashChart({ data }: { data: ChartPoint[] }) {
   const values = data.map((p) => ({
     date: p.date.slice(5).split("-").reverse().join("."),

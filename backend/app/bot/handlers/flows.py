@@ -7,7 +7,19 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.ui import Action, button, cancel_keyboard, inline, main_keyboard, month_label, today
+from app.bot.ui import (
+    Action,
+    answer_prompt,
+    button,
+    cancel_keyboard,
+    clear_prompt,
+    edit_prompt,
+    inline,
+    main_keyboard,
+    month_label,
+    safe_edit_text,
+    today,
+)
 from app.models import Category, Person, Project, Role
 from app.services.core import AdvanceService, FinanceService, PeopleService, ProjectService
 from app.services.values import DomainError, money, money_input, parse_date, parse_month
@@ -26,7 +38,7 @@ class Input(StatesGroup):
     confirm = State()
 
 
-async def confirm(message, state):
+async def confirm(message, state, *, edit=False):
     d = await state.get_data()
     labels = {
         "addperson": "Kishi qo'shish",
@@ -66,10 +78,12 @@ async def confirm(message, state):
         rows.append([button("Sanani o'zgartirish", "editday"), button("Izoh", "editnote")])
     if d["kind"] == "addadvance":
         rows.append([button("Oylik davrini o'zgartirish", "editmonth")])
-    await message.answer(
-        "\n".join(filter(None, lines)) + "\n\nSaqlaysizmi?",
-        reply_markup=inline(rows),
-    )
+    text = "\n".join(filter(None, lines)) + "\n\nSaqlaysizmi?"
+    if edit:
+        await safe_edit_text(message, text, reply_markup=inline(rows))
+        await state.update_data(_prompt_message_id=None)
+    else:
+        await message.answer(text, reply_markup=inline(rows))
 
 
 @router.callback_query(
@@ -104,45 +118,57 @@ async def begin(query: CallbackQuery, callback_data: Action, state: FSMContext, 
         data["label"] = project.name
     await state.update_data(**data)
     if c.kind in ("archive", "complete"):
-        await confirm(query.message, state)
+        await confirm(query.message, state, edit=True)
     elif c.kind in ("addperson", "rename", "addproject"):
         await state.set_state(Input.name)
-        await query.message.answer(
+        await edit_prompt(
+            query.message,
+            state,
             "Nomini kiriting:" if c.kind == "addproject" else "Ismini kiriting:",
-            reply_markup=cancel_keyboard(),
+            cancel_keyboard(),
         )
     else:
         await state.set_state(Input.amount)
-        await query.message.answer("Summani kiriting: 500 000", reply_markup=cancel_keyboard())
+        await edit_prompt(query.message, state, "Summani kiriting: 500 000", cancel_keyboard())
     await query.answer()
 
 
 @router.message(Input.name)
 async def name(message: Message, state: FSMContext):
     value = PeopleService.name(message.text or "")
+    await clear_prompt(message, state)
     await state.update_data(name=value)
     d = await state.get_data()
     if d["kind"] == "addperson" and d["role"] == "WORKER":
         await state.set_state(Input.amount)
-        await message.answer("Oylik maoshni kiriting: 6 000 000")
+        await answer_prompt(
+            message,
+            state,
+            "Oylik maoshni kiriting: 6 000 000",
+            cancel_keyboard(),
+        )
     else:
         await confirm(message, state)
 
 
-async def ask_day(message, state):
+async def ask_day(message, state, *, edit=False):
     await state.set_state(Input.day)
-    await message.answer(
-        "To'lov sanasi: bugun yoki DD.MM.YYYY shaklida kiriting.",
-        reply_markup=inline([[button("Bugun", "flowday")]]),
-    )
+    markup = inline([[button("Bugun", "flowday")]])
+    text = "To'lov sanasi: bugun yoki DD.MM.YYYY shaklida kiriting."
+    if edit:
+        await edit_prompt(message, state, text, markup)
+    else:
+        await answer_prompt(message, state, text, markup)
 
 
-async def ask_note(message, state):
+async def ask_note(message, state, *, edit=False):
     await state.set_state(Input.note)
-    await message.answer(
-        "Izoh kiriting yoki o'tkazib yuboring.",
-        reply_markup=inline([[button("Izohsiz", "skipnote")]]),
-    )
+    markup = inline([[button("Izohsiz", "skipnote")]])
+    text = "Izoh kiriting yoki o'tkazib yuboring."
+    if edit:
+        await edit_prompt(message, state, text, markup)
+    else:
+        await answer_prompt(message, state, text, markup)
 
 
 @router.callback_query(
@@ -150,14 +176,16 @@ async def ask_note(message, state):
 )
 async def edit_optional(query: CallbackQuery, callback_data: Action, state: FSMContext):
     if callback_data.kind == "editday":
-        await ask_day(query.message, state)
+        await ask_day(query.message, state, edit=True)
     elif callback_data.kind == "editnote":
-        await ask_note(query.message, state)
+        await ask_note(query.message, state, edit=True)
     else:
         await state.set_state(Input.month)
-        await query.message.answer(
+        await edit_prompt(
+            query.message,
+            state,
             "Oylik davrini YYYY-MM shaklida kiriting.",
-            reply_markup=inline([[button(month_label(today()), "flowmonth")]]),
+            inline([[button(month_label(today()), "flowmonth")]]),
         )
     await query.answer()
 
@@ -165,6 +193,7 @@ async def edit_optional(query: CallbackQuery, callback_data: Action, state: FSMC
 @router.message(Input.amount)
 async def amount(message: Message, state: FSMContext):
     value = money_input(message.text or "")
+    await clear_prompt(message, state)
     await state.update_data(amount=str(value))
     d = await state.get_data()
     if d["kind"] == "addperson":
@@ -194,13 +223,14 @@ async def amount(message: Message, state: FSMContext):
 @router.message(Input.month)
 async def month(message: Message, state: FSMContext):
     await state.update_data(month=parse_month(message.text or "").isoformat())
+    await clear_prompt(message, state)
     await confirm(message, state)
 
 
 @router.callback_query(Input.month, Action.filter(F.kind == "flowmonth"))
 async def current_month(query: CallbackQuery, state: FSMContext):
     await state.update_data(month=today().replace(day=1).isoformat())
-    await confirm(query.message, state)
+    await confirm(query.message, state, edit=True)
     await query.answer()
 
 
@@ -213,12 +243,13 @@ async def category(query: CallbackQuery, callback_data: Action, state: FSMContex
         if not people:
             raise DomainError("Avval hamkor qo'shing.")
         await state.set_state(Input.beneficiary)
-        await query.message.answer(
+        await safe_edit_text(
+            query.message,
             "Kim pul oldi?",
             reply_markup=inline([[button(p.name, "beneficiary", p.id.hex)] for p in people]),
         )
     else:
-        await confirm(query.message, state)
+        await confirm(query.message, state, edit=True)
     await query.answer()
 
 
@@ -226,20 +257,21 @@ async def category(query: CallbackQuery, callback_data: Action, state: FSMContex
 async def beneficiary(query: CallbackQuery, callback_data: Action, state: FSMContext, repo):
     person = await PeopleService(repo).require(Person, callback_data.id)
     await state.update_data(beneficiary_id=person.id.hex, beneficiary_label=person.name)
-    await confirm(query.message, state)
+    await confirm(query.message, state, edit=True)
     await query.answer()
 
 
 @router.message(Input.day)
 async def day(message: Message, state: FSMContext):
     await state.update_data(day=parse_date(message.text or "").isoformat())
+    await clear_prompt(message, state)
     await confirm(message, state)
 
 
 @router.callback_query(Input.day, Action.filter(F.kind == "flowday"))
 async def current_day(query: CallbackQuery, state: FSMContext):
     await state.update_data(day=today().isoformat())
-    await confirm(query.message, state)
+    await confirm(query.message, state, edit=True)
     await query.answer()
 
 
@@ -249,13 +281,14 @@ async def note(message: Message, state: FSMContext):
     if not 1 <= len(value) <= 500:
         raise DomainError("Izoh 1–500 ta belgidan iborat bo'lishi kerak.")
     await state.update_data(note=value)
+    await clear_prompt(message, state)
     await confirm(message, state)
 
 
 @router.callback_query(Input.note, Action.filter(F.kind == "skipnote"))
 async def skip_note(query: CallbackQuery, state: FSMContext):
     await state.update_data(note=None)
-    await confirm(query.message, state)
+    await confirm(query.message, state, edit=True)
     await query.answer()
 
 
@@ -298,6 +331,6 @@ async def save(query: CallbackQuery, callback_data: Action, state: FSMContext, r
     # Commit before announcing success; event isolation prevents double-tap saves.
     await repo.session.commit()
     await state.clear()
-    await query.message.edit_text("✅ Saqlandi.", reply_markup=inline([]))
+    await safe_edit_text(query.message, "✅ Saqlandi.", reply_markup=None)
     await query.message.answer("Bosh menyu", reply_markup=main_keyboard())
     await query.answer()

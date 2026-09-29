@@ -2,12 +2,20 @@ from datetime import date
 from decimal import Decimal
 
 from aiogram import F, Router
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.ui import Action, button, cancel_keyboard, inline, today
+from app.bot.ui import (
+    Action,
+    button,
+    cancel_keyboard,
+    clear_prompt,
+    edit_prompt,
+    inline,
+    safe_edit_text,
+    today,
+)
 from app.services.core import AttendanceService, PeopleService
 from app.services.values import parse_date
 
@@ -52,11 +60,7 @@ async def show_day(message, repo, day, page=0, edit=False):
     )
     text = f"{day:%d.%m.%Y} — Davomat"
     if edit:
-        try:
-            await message.edit_text(text, reply_markup=inline(rows))
-        except TelegramBadRequest as exc:
-            if "message is not modified" not in str(exc):
-                raise
+        await safe_edit_text(message, text, reply_markup=inline(rows))
     else:
         await message.answer(text, reply_markup=inline(rows))
 
@@ -69,7 +73,12 @@ async def attendance(query: CallbackQuery, callback_data: Action, state: FSMCont
     if c.kind == "date":
         await state.clear()
         await state.set_state(AttendanceInput.day)
-        await query.message.answer("Sanani kiriting: 15.09.2026", reply_markup=cancel_keyboard())
+        await edit_prompt(
+            query.message,
+            state,
+            "Sanani kiriting: 15.09.2026",
+            cancel_keyboard(),
+        )
     elif c.kind != "noop":
         day = (
             today()
@@ -87,12 +96,13 @@ async def attendance(query: CallbackQuery, callback_data: Action, state: FSMCont
         elif c.kind == "attpage":
             page = int(c.id)
         await repo.session.commit()
-        await show_day(query.message, repo, day, page, edit=c.kind != "today")
+        await show_day(query.message, repo, day, page, edit=True)
     await query.answer()
 
 
 @router.message(AttendanceInput.day)
 async def entered_day(message: Message, state: FSMContext, repo):
     day = parse_date(message.text or "")
+    await clear_prompt(message, state)
     await state.clear()
     await show_day(message, repo, day)

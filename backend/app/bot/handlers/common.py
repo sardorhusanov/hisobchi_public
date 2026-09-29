@@ -9,7 +9,16 @@ from aiogram.types import (
     WebAppInfo,
 )
 
-from app.bot.ui import BACK, HOME, MAIN, Action, button, inline, main_keyboard
+from app.bot.ui import (
+    BACK,
+    HOME,
+    MAIN,
+    Action,
+    button,
+    inline,
+    main_keyboard,
+    safe_edit_text,
+)
 from app.config.settings import get_settings
 from app.models import Role, Status
 from app.services.core import PeopleService
@@ -42,8 +51,10 @@ async def start(message: Message, state: FSMContext):
     await home(message, state)
 
 
-@router.callback_query(Action.filter(F.kind == "home"))
-async def home_callback(query: CallbackQuery, state: FSMContext):
+@router.callback_query(Action.filter(F.kind.in_({"home", "cancel"})))
+async def home_callback(query: CallbackQuery, callback_data: Action, state: FSMContext):
+    text = "Amal bekor qilindi." if callback_data.kind == "cancel" else "Bosh menyuga qaytildi."
+    await safe_edit_text(query.message, text, reply_markup=None)
     await home(query.message, state)
     await query.answer()
 

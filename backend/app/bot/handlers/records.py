@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from app.bot.ui import Action, button, inline, month_label
+from app.bot.ui import Action, button, inline, main_keyboard, month_label, safe_edit_text
 from app.models import Advance, Person, Project, Status
 from app.services.core import AdvanceService, PeopleService, ProjectService
 from app.services.values import money
@@ -71,7 +71,11 @@ async def records(query: CallbackQuery, callback_data: Action, repo):
     if not rows:
         text += "\nHozircha ma'lumot yo'q."
     for offset in range(0, max(1, len(rows)), 40):
-        await query.message.answer(text, reply_markup=inline(rows[offset : offset + 40]))
+        keyboard = inline(rows[offset : offset + 40])
+        if offset == 0:
+            await safe_edit_text(query.message, text, reply_markup=keyboard)
+        else:
+            await query.message.answer(text, reply_markup=keyboard)
     await query.answer()
 
 
@@ -79,5 +83,6 @@ async def records(query: CallbackQuery, callback_data: Action, repo):
 async def delete(query: CallbackQuery, callback_data: Action, repo):
     await AdvanceService(repo).delete(callback_data.id)
     await repo.session.commit()
-    await query.message.edit_text("Avans o'chirildi.", reply_markup=inline([]))
+    await safe_edit_text(query.message, "Avans o'chirildi.", reply_markup=None)
+    await query.message.answer("Bosh menyu", reply_markup=main_keyboard())
     await query.answer()

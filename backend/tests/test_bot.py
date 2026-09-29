@@ -7,12 +7,17 @@ import pytest
 from aiogram import Bot, Dispatcher
 from aiogram.client.session.base import BaseSession
 from aiogram.fsm.storage.memory import SimpleEventIsolation
-from aiogram.methods import AnswerCallbackQuery, EditMessageText, SendMessage
+from aiogram.methods import (
+    AnswerCallbackQuery,
+    EditMessageReplyMarkup,
+    EditMessageText,
+    SendMessage,
+)
 from aiogram.types import Chat, Message, Update, User
 
 from app.bot.handlers import make_router
 from app.bot.middleware import DatabaseMiddleware
-from app.bot.ui import Action, today
+from app.bot.ui import Action, cancel_keyboard, main_keyboard, today
 from app.models import Role
 from app.repositories.core import Repository
 from app.services.core import PeopleService, ProjectService, SalaryService, WorkspaceService
@@ -30,6 +35,13 @@ class TelegramSession(BaseSession):
         self.calls.append(method)
         if isinstance(method, AnswerCallbackQuery):
             return True
+        if isinstance(method, EditMessageReplyMarkup):
+            return Message(
+                message_id=method.message_id,
+                date=datetime.now(UTC),
+                chat=Chat(id=int(method.chat_id), type="private"),
+                reply_markup=method.reply_markup,
+            )
         if isinstance(method, (SendMessage, EditMessageText)):
             return Message(
                 message_id=len(self.calls),
@@ -42,6 +54,21 @@ class TelegramSession(BaseSession):
 
     async def stream_content(self, *args, **kwargs):
         yield b""
+
+
+def test_keyboard_lifecycle():
+    main = main_keyboard()
+    assert main.one_time_keyboard is True
+    assert main.resize_keyboard is True
+
+    cancel = cancel_keyboard()
+    kinds = {
+        Action.unpack(button.callback_data).kind
+        for row in cancel.inline_keyboard
+        for button in row
+        if button.callback_data
+    }
+    assert kinds == {"home"}
 
 
 @pytest.mark.skipif(
