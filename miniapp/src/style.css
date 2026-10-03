@@ -2,16 +2,16 @@
   font-family: "DM Sans", system-ui, sans-serif;
   color: var(--text);
   background: var(--bg);
-  --bg: #f8f9f6;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-secondary: #f1f4f0;
+  --surface-secondary: #f6f8f6;
   --primary: #2d7657;
   --primary-pressed: #235d45;
-  --primary-soft: #eaf4ed;
+  --primary-soft: #eaf5ed;
   --on-primary: #ffffff;
   --text: #1b2820;
   --text-secondary: #65736a;
-  --border: #e0e8e1;
+  --border: #e4ebe5;
   --danger: #a94f4b;
   --danger-soft: #fcf1ef;
   --warning: #a76a32;
@@ -246,8 +246,8 @@ main > * + * {
   font-variant-numeric: tabular-nums;
 }
 .stat.accent {
-  background: var(--primary-soft);
-  border-color: var(--primary-soft);
+  background: var(--surface);
+  border-color: var(--primary);
 }
 .stat.accent strong {
   color: var(--primary);
@@ -290,8 +290,8 @@ main > * + * {
 }
 .secondary {
   color: var(--primary);
-  background: var(--surface-secondary);
-  border: 1px solid var(--border);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-soft);
 }
 .text-button {
   background: transparent;
@@ -466,7 +466,8 @@ dd {
   border-radius: 10px;
 }
 .bottom-nav a.active svg {
-  background: var(--primary-soft);
+  background: var(--primary);
+  color: var(--on-primary);
 }
 .filters {
   display: flex;
@@ -553,8 +554,8 @@ textarea {
   white-space: nowrap;
 }
 .tabs button[aria-pressed="true"] {
-  color: var(--primary);
-  background: var(--surface);
+  color: var(--on-primary);
+  background: var(--primary);
   font-weight: 600;
 }
 .actions {
@@ -583,9 +584,9 @@ textarea {
   font-size: 13px;
 }
 .attendance-options button[aria-pressed="true"] {
-  background: var(--primary-soft);
+  background: var(--primary);
   border-color: var(--primary);
-  color: var(--primary);
+  color: var(--on-primary);
   font-weight: 700;
 }
 .calendar {

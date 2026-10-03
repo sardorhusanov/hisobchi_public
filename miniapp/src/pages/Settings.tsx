@@ -66,8 +66,8 @@ export default function Settings() {
             setAppearance(value as Appearance);
           }}
         >
-          <option value="telegram">Telegramga mos</option>
           <option value="light">Yorug'</option>
+          <option value="telegram">Telegramga mos</option>
           <option value="dark">Tungi</option>
         </Select>
       </section>

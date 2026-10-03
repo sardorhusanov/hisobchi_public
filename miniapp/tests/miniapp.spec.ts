@@ -11,7 +11,7 @@ test("real API flows and mobile layouts", async ({ page }) => {
     window.Telegram = {
       WebApp: {
         initData: "",
-        colorScheme: "light",
+        colorScheme: "dark",
         ready() {},
         expand() {},
         onEvent(event, cb) {
@@ -27,6 +27,7 @@ test("real API flows and mobile layouts", async ({ page }) => {
   const suffix = Date.now().toString().slice(-6);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Salom/ })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   expect(
     await page.evaluate(() =>
       performance
@@ -108,6 +109,8 @@ test("real API flows and mobile layouts", async ({ page }) => {
   await page.getByLabel("Rang mavzusi").selectOption("light");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.getByLabel("Rang mavzusi").selectOption("telegram");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.getByLabel("Rang mavzusi").selectOption("light");
   for (const width of [320, 360, 390, 430]) {
     await page.setViewportSize({ width, height: 844 });
     for (const route of [

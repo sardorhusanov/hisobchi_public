@@ -184,9 +184,10 @@ transactions commit before success is sent; a failed batch rolls back entirely.
    existing chat menu button (`/setmenubutton`) and inline launch button do not
    create the profile **Open** button.
 
-The app initializes `ready()`/`expand()`, follows Telegram light/dark theme changes,
-and uses Telegram's BackButton on nested pages. Telegram WebApp launches should
-be tested on a real device with your own bot token before release.
+The app initializes `ready()`/`expand()`, opens in a light theme by default, and
+offers Telegram-matched and dark themes in Settings. It uses Telegram's
+BackButton on nested pages. Telegram WebApp launches should be tested on a real
+device with your own bot token before release.
 
 ## Pages and behavior
 

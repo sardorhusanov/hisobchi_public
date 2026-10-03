@@ -8,9 +8,9 @@ const appearanceKey = "hisobchi-appearance";
 export function getAppearance(): Appearance {
   try {
     const saved = window.localStorage.getItem(appearanceKey);
-    return saved === "light" || saved === "dark" ? saved : "telegram";
+    return saved === "telegram" || saved === "dark" ? saved : "light";
   } catch {
-    return "telegram";
+    return "light";
   }
 }
 
@@ -27,8 +27,7 @@ export function applyAppearance() {
 
 export function setAppearance(value: Appearance) {
   try {
-    if (value === "telegram") window.localStorage.removeItem(appearanceKey);
-    else window.localStorage.setItem(appearanceKey, value);
+    window.localStorage.setItem(appearanceKey, value);
   } catch {
     // Private browsing can disable storage; keep the selected theme for this view.
     document.documentElement.dataset.theme =
