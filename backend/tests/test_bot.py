@@ -153,6 +153,14 @@ async def test_bot_end_to_end(context, monkeypatch):
     assert len(workers) == 1
     worker = workers[0]
     await send(kind="today")
+    attendance_labels = [
+        button.text
+        for call in telegram.calls
+        for row in getattr(getattr(call, "reply_markup", None), "inline_keyboard", [])
+        for button in row
+    ]
+    assert any(label.startswith("👷 Ishchi · Ali:") for label in attendance_labels)
+    assert any(label.startswith("👤 Egasi ·") for label in attendance_labels)
     await send(kind="att", id=worker.id.hex, value=f"{today():%Y%m%d}5")
     await send(kind="addadvance", id=worker.id.hex)
     await send("50 000")
@@ -196,6 +204,13 @@ async def test_bot_end_to_end(context, monkeypatch):
     assert any("Hamkor olgan: 100 000" in (getattr(c, "text", "") or "") for c in telegram.calls)
     await send(kind="date")
     await send("15.09.2025")
+    attendance_labels = [
+        button.text
+        for call in telegram.calls
+        for row in getattr(getattr(call, "reply_markup", None), "inline_keyboard", [])
+        for button in row
+    ]
+    assert any(label.startswith("🤝 Hamkor · Hamkor:") for label in attendance_labels)
     await send(kind="all", value="20250915")
     await send(kind="personatt", id=partner.id.hex)
     await send("2025-09")

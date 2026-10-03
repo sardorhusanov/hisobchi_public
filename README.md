@@ -178,9 +178,11 @@ transactions commit before success is sent; a failed batch rolls back entirely.
 2. Set backend `MINI_APP_URL=https://app.example.com` and restart the bot.
 3. Send `/start` or use **Bosh menyu**. The bot sends **📱 Ilovani ochish** as an
    inline `WebAppInfo` button. Inline launch supports authenticated initData.
-4. Optionally configure the bot's menu button with BotFather `/setmenubutton`, or
-   configure its Main Mini App via `/mybots` → your bot → Bot Settings → Configure
-   Mini App. Set the same HTTPS URL.
+4. To show an **Open** button on the bot's profile and in Telegram's recent-apps
+   list, configure the **Main Mini App** in BotFather: `/mybots` → your bot →
+   Bot Settings → Configure Mini App. Set the same HTTPS frontend URL. The
+   existing chat menu button (`/setmenubutton`) and inline launch button do not
+   create the profile **Open** button.
 
 The app initializes `ready()`/`expand()`, follows Telegram light/dark theme changes,
 and uses Telegram's BackButton on nested pages. Telegram WebApp launches should

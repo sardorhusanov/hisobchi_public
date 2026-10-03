@@ -2,11 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../api";
-import {
-  Breakdown,
-  CashChart,
-  ProjectChart,
-} from "../components/charts/FinanceCharts";
+import { CashChart } from "../components/charts/CashChart";
+import { Breakdown, ProjectChart } from "../components/charts/FinanceCharts";
 import { AttendanceCalendar } from "../components/common/AttendanceCalendar";
 import { FinanceStats } from "../components/common/FinanceStats";
 import { History } from "../components/common/History";
@@ -20,7 +17,7 @@ import {
   Select,
   Stat,
 } from "../components/common/ui";
-import { today } from "../utils/format";
+import { roleLabel, today } from "../utils/format";
 export default function Reports() {
   const [month, setMonth] = useState(today().slice(0, 7));
   const [report, setReport] = useState("finance");
@@ -109,7 +106,7 @@ export default function Reports() {
               <option value="">Barcha kishilar</option>
               {attendance.data.items.map((r) => (
                 <option key={r.person.id} value={r.person.id}>
-                  {r.person.name}
+                  {r.person.name} · {roleLabel[r.person.role]}
                 </option>
               ))}
             </Select>

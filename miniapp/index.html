@@ -1,1 +1,48 @@
-<!doctype html><html lang="uz"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>Ish boshqaruvi</title><script src="https://telegram.org/js/telegram-web-app.js"></script></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8f9f6" />
+    <title>Hisobchi</title>
+    <style>
+      #boot {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: #f8f9f6;
+        color: #1b2820;
+        font:
+          600 22px system-ui,
+          sans-serif;
+      }
+      #boot span {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        background: #2d7657;
+        color: white;
+        font-style: italic;
+      }
+      #boot small {
+        font-size: 13px;
+        font-weight: 400;
+        color: #65736a;
+      }
+    </style>
+    <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <div id="root">
+      <div id="boot">
+        <span>h</span>hisobchi<small>Ishlaringiz yuklanmoqda</small>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

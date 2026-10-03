@@ -169,7 +169,7 @@ export default function Attendance() {
             <Select label="Kishi" value={personId} onChange={setPerson}>
               {people.data?.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {p.name} · {roleLabel[p.role]}
                 </option>
               ))}
             </Select>

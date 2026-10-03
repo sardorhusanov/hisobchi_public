@@ -27,6 +27,13 @@ test("real API flows and mobile layouts", async ({ page }) => {
   const suffix = Date.now().toString().slice(-6);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Salom/ })).toBeVisible();
+  expect(
+    await page.evaluate(() =>
+      performance
+        .getEntriesByType("resource")
+        .some((entry) => entry.name.includes("FinanceCharts")),
+    ),
+  ).toBe(false);
   await page.goto("/workers");
   await page.getByRole("button", { name: "Qo'shish", exact: true }).click();
   await page.getByLabel("Ism", { exact: true }).fill("Ali " + suffix);
@@ -95,6 +102,12 @@ test("real API flows and mobile layouts", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Chiqim tarkibi", exact: true }),
   ).toBeVisible();
+  await page.goto("/settings");
+  await page.getByLabel("Rang mavzusi").selectOption("dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.getByLabel("Rang mavzusi").selectOption("light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.getByLabel("Rang mavzusi").selectOption("telegram");
   for (const width of [320, 360, 390, 430]) {
     await page.setViewportSize({ width, height: 844 });
     for (const route of [

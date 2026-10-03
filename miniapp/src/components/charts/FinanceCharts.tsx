@@ -1,9 +1,6 @@
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
-  CartesianGrid,
   Cell,
   Pie,
   PieChart,
@@ -12,11 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type {
-  ChartPoint,
-  FinanceSummary,
-  ProjectSummary,
-} from "../../types/models";
+import type { FinanceSummary, ProjectSummary } from "../../types/models";
 const compact = (value: number) =>
   new Intl.NumberFormat("uz-UZ", {
     notation: "compact",
@@ -29,86 +22,6 @@ const colors = [
   "var(--chart-expense)",
   "var(--chart-neutral)",
 ];
-export function CashChart({ data }: { data: ChartPoint[] }) {
-  const values = data.map((p) => ({
-    date: p.date.slice(5).split("-").reverse().join("."),
-    Tushum: Number(p.income),
-    Xarajat: Number(p.expenses),
-  }));
-  return (
-    <section className="card chart-card">
-      <div className="section-heading">
-        <h2>Pul harakati</h2>
-        <span className="muted">Kunlar bo'yicha</span>
-      </div>
-      <div className="legend">
-        <span>
-          <i style={{ background: colors[0] }} />
-          Tushum
-        </span>
-        <span>
-          <i style={{ background: colors[1] }} />
-          Xarajat
-        </span>
-      </div>
-      <div
-        className="chart"
-        role="img"
-        aria-label="Kunlar bo'yicha tushum va xarajatlar grafigi"
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={values}
-            margin={{ top: 10, right: 8, left: -16, bottom: 0 }}
-          >
-            <CartesianGrid
-              vertical={false}
-              strokeDasharray="3 5"
-              stroke="var(--border)"
-            />
-            <XAxis
-              dataKey="date"
-              tick={{ fill: "var(--muted)" }}
-              tickLine={false}
-              axisLine={false}
-              minTickGap={25}
-            />
-            <YAxis
-              tick={{ fill: "var(--muted)" }}
-              tickFormatter={compact}
-              tickLine={false}
-              axisLine={false}
-            />
-            <Tooltip
-              formatter={(value) => compact(Number(value)) + " so'm"}
-              contentStyle={{
-                background: "var(--surface)",
-                borderColor: "var(--border)",
-                borderRadius: 12,
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="Tushum"
-              stroke={colors[0]}
-              fill={colors[0]}
-              fillOpacity={0.09}
-              strokeWidth={2}
-            />
-            <Area
-              type="monotone"
-              dataKey="Xarajat"
-              stroke={colors[1]}
-              fill={colors[1]}
-              fillOpacity={0.04}
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </section>
-  );
-}
 export function Breakdown({ data }: { data: FinanceSummary }) {
   const values = [
     { name: "Biznes", value: Number(data.business_expenses) },
@@ -146,6 +59,7 @@ export function Breakdown({ data }: { data: FinanceSummary }) {
                     background: "var(--surface)",
                     borderColor: "var(--border)",
                     borderRadius: 12,
+                    color: "var(--text)",
                   }}
                 />
               </PieChart>
@@ -179,14 +93,26 @@ export function ProjectChart({ data }: { data: ProjectSummary[] }) {
               .map((p) => ({ name: p.project.name, value: Number(p.balance) }))}
             margin={{ left: 0, right: 20 }}
           >
-            <XAxis type="number" tickFormatter={compact} />
+            <XAxis
+              type="number"
+              tickFormatter={compact}
+              tick={{ fill: "var(--text-secondary)" }}
+            />
             <YAxis
               dataKey="name"
               type="category"
               width={85}
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
             />
-            <Tooltip formatter={(value) => compact(Number(value)) + " so'm"} />
+            <Tooltip
+              formatter={(value) => compact(Number(value)) + " so'm"}
+              contentStyle={{
+                background: "var(--surface)",
+                borderColor: "var(--border)",
+                borderRadius: 12,
+                color: "var(--text)",
+              }}
+            />
             <Bar
               dataKey="value"
               name="Qoldiq"

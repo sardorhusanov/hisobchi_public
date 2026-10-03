@@ -4,7 +4,7 @@ import { ArrowRight, CheckCheck, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import { useIdentity } from "../hooks/data";
-import { CashChart } from "../components/charts/FinanceCharts";
+import { CashChart } from "../components/charts/CashChart";
 import { FinanceStats } from "../components/common/FinanceStats";
 import { ProjectCard } from "../components/common/ProjectCard";
 import {

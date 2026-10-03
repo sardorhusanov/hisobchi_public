@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { api } from "../api";
-import { Breakdown, CashChart } from "../components/charts/FinanceCharts";
+import { CashChart } from "../components/charts/CashChart";
+import { Breakdown } from "../components/charts/FinanceCharts";
 import { FinanceStats } from "../components/common/FinanceStats";
 import { History } from "../components/common/History";
 import {

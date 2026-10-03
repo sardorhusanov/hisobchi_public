@@ -16,10 +16,17 @@ from app.bot.ui import (
     safe_edit_text,
     today,
 )
+from app.models import Role
 from app.services.core import AttendanceService, PeopleService
 from app.services.values import parse_date
 
 router = Router()
+
+ROLE_LABEL = {
+    Role.WORKER: "👷 Ishchi",
+    Role.PARTNER: "🤝 Hamkor",
+    Role.OWNER: "👤 Egasi",
+}
 
 
 class AttendanceInput(StatesGroup):
@@ -34,7 +41,14 @@ async def show_day(message, repo, day, page=0, edit=False):
     rows = []
     for person in people[page * 8 : page * 8 + 8]:
         value = values.get(person.id)
-        rows.append([button(f"{person.name}: {value if value else '—'}", "noop")])
+        rows.append(
+            [
+                button(
+                    f"{ROLE_LABEL[person.role]} · {person.name}: {value if value else '—'}",
+                    "noop",
+                )
+            ]
+        )
         rows.append(
             [
                 button(
